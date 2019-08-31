@@ -5,7 +5,11 @@ luaweb:get("/", function()
 end)
 
 luaweb:get("/hello", function()
-    return "<h1>Hello, World!<h1>"
+    local response = ""
+    for line in io.lines("index.html") do
+        response = response .. line
+    end
+    return response
 end)
 
 luaweb:listen("*", 8080)

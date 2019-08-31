@@ -72,7 +72,16 @@ function luaweb:listen(domain, port)
         if (request ~= nil) then
             request, headers = manipulate_request(request)
             if (self.routes[request[2]] == nil) then
-                response = "Not found"
+                response = ""
+                local file = io.open("." .. request[2])
+                if (file) then file:close() end
+                if (file ~= nil) then
+                    for line in io.lines(string.sub(request[2], 2, #request[2])) do
+                        response = response .. line
+                    end
+                else
+                    response = "Not found"
+                end
             else
                 response = self.routes[request[2]]
             end
