@@ -26,7 +26,21 @@ local function manipulate_request(request)
     return http_verb_table, headers
 end
 
-local function get_response(content, headers)
+local function get_mime_type(filename)
+    extension = ""
+    for token in string.gmatch(filename, "([^.%s]+)") do
+        extension = token
+    end
+    
+    if (extension == "css") then
+        return "text/css"
+    elseif (extension == "jpeg") then
+        return "image/jpeg"
+    end
+    return "text/html"
+end
+
+local function get_response(content, headers, filename)
     return [[
 HTTP/1.1 200 OK
 Date: ]] .. os.date("%a, %d %b %Y %X GMT") .. [[
@@ -35,7 +49,7 @@ Accept-Ranges: bytes
 Content-Length: ]] .. #content .. [[
 
 Connection: close
-Content-Type: ]] .. string.gmatch(headers["Accept:"], "([^%s,]+)")() .. [[
+Content-Type: ]] .. get_mime_type(filename) .. [[
 
 
 ]] .. content
@@ -56,6 +70,12 @@ local function get_request(client)
     return request
 end
 
+local function print_table(table)
+    for i, v in ipairs(table) do
+        print(i, v)
+    end
+end
+
 function luaweb:listen(domain, port)
     local socket = require("socket")
     local master = socket.tcp()
@@ -67,18 +87,22 @@ function luaweb:listen(domain, port)
     while 1 do
         local client = master:accept()
         local request = get_request(client)
-        -- print("Request:")
-        -- print(request)
         if (request ~= nil) then
             request, headers = manipulate_request(request)
             if (self.routes[request[2]] == nil) then
                 response = ""
-                local file = io.open("." .. request[2])
-                if (file) then file:close() end
+                -- local file = io.open("." .. request[2])
+                -- if (file) then file:close() end
+                -- if (file ~= nil) then
+                --     for line in io.lines(string.sub(request[2], 2, #request[2])) do
+                --         response = response .. line
+                --     end
+                -- else
+                --     response = "Not found"
+                -- end
+                local file = io.open("." .. request[2], "rb")
                 if (file ~= nil) then
-                    for line in io.lines(string.sub(request[2], 2, #request[2])) do
-                        response = response .. line
-                    end
+                    response = response .. file:read("*all")
                 else
                     response = "Not found"
                 end
@@ -88,7 +112,7 @@ function luaweb:listen(domain, port)
         else
             response = "Internal server error"
         end
-        client:send(get_response(response, headers))
+        client:send(get_response(response, headers, request[2]))
     end
 end
 
