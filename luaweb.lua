@@ -32,15 +32,28 @@ local function get_mime_type(filename)
         extension = token
     end
     
-    if (extension == "css") then
+    if (extension == "html") then
+        return "text/html"
+    elseif (extension == "css") then
         return "text/css"
+    elseif (extension == "js") then
+        return "text/javascript"
     elseif (extension == "jpeg") then
         return "image/jpeg"
+    elseif (extension == "png") then
+        return "image/png"
+    elseif (luaweb.routes[filename] ~= nil) then
+        return "text/html"
     end
-    return "text/html"
+
+    return "text/plain"
 end
 
 local function get_response(content, headers, filename)
+    print(filename)
+    print(get_mime_type(filename))
+    print("-------------------")
+
     return [[
 HTTP/1.1 200 OK
 Date: ]] .. os.date("%a, %d %b %Y %X GMT") .. [[
@@ -91,15 +104,6 @@ function luaweb:listen(domain, port)
             request, headers = manipulate_request(request)
             if (self.routes[request[2]] == nil) then
                 response = ""
-                -- local file = io.open("." .. request[2])
-                -- if (file) then file:close() end
-                -- if (file ~= nil) then
-                --     for line in io.lines(string.sub(request[2], 2, #request[2])) do
-                --         response = response .. line
-                --     end
-                -- else
-                --     response = "Not found"
-                -- end
                 local file = io.open("." .. request[2], "rb")
                 if (file ~= nil) then
                     response = response .. file:read("*all")
